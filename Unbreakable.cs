@@ -1,5 +1,4 @@
 using CharmCore.Api;
-using CharmDiamond.Domain;
 using Pockets.Api;
 using UnityEngine;
 
@@ -14,8 +13,6 @@ namespace CharmDiamond
 	/// </summary>
 	internal static class Unbreakable
 	{
-		private static readonly WearThrottle Throttle = new WearThrottle();
-
 		/// <summary>True when this physics hit must be cancelled. Call on the host only.</summary>
 		internal static bool ShouldBlock(PhysGrabObjectImpactDetector detector, bool forceBreak)
 		{
@@ -50,14 +47,20 @@ namespace CharmDiamond
 				return false;
 			}
 
-			if (diamond != null && Throttle.TryCharge(valuable.GetInstanceID(), Time.time, charm.WearCooldownSeconds.Value))
+			if (diamond != null && charm.Throttle.TryCharge(valuable.GetInstanceID(), Time.time, charm.WearCooldownSeconds.Value))
 			{
 				charm.WearValuable(diamond, charm.WearPercent);
-				charm.LogDebug($"Unbreakable: prevented a hit on {valuable.name} (value {valuable.dollarValueCurrent:0}); wore the Diamond {charm.WearPercent:0.#}%");
+				if (charm.DebugMode)
+				{
+					charm.LogDebug($"Unbreakable: prevented a hit on {valuable.name} (value {valuable.dollarValueCurrent:0}); wore the Diamond {charm.WearPercent:0.#}%");
+				}
 			}
 			else
 			{
-				charm.LogDebug($"Unbreakable: prevented a hit on {valuable.name} (no extra wear, inside the wear cooldown)");
+				if (charm.DebugMode)
+				{
+					charm.LogDebug($"Unbreakable: prevented a hit on {valuable.name} (no extra wear, inside the wear cooldown)");
+				}
 			}
 
 			return true;

@@ -37,7 +37,7 @@ All are checked by `CharmDiamond.Tests/GameContractTests.cs`. The rate limit is 
 - **Only the carrier's own hands protect.** A valuable held by a player who does not carry the Diamond is not protected, and a pocketed charm valuable is never protected (it wears only through charm wear). `ProtectAllHeld` was not added: the design says the owner's hands, and a second switch would change gameplay.
 - **One Diamond per player is used** (the first from `ForEachCarrier`).
 - **Prevented hits still go through the vanilla callers** (`BreakLight/Medium/Heavy` set their own cooldowns and enemy investigation after `Break`), so noise or monster attraction from the impact is unchanged; only the value loss and break effect from `BreakRPC` are skipped.
-- Throttle records are keyed by instance id and never pruned (a few numbers per held valuable per session).
+- Throttle records are keyed by instance id; they live in the charm and are cleared when the level ends (see Runtime hygiene).
 
 ## Known limits and unverified
 
@@ -51,3 +51,15 @@ Provided by CharmCore: the `Debug.DebugMode` setting (off by default) places the
 ## Known limits
 
 - Looked up by exact prefab name; a game update that renames the prefab needs a mod update.
+
+## Runtime hygiene
+
+Reviewed against `RepoKit/references/runtime-hygiene.md`.
+
+1. Lifetime of references: fixed. The wear throttle (dictionary of instance id to time) was a static field of `Unbreakable` and was never cleared. It now belongs to `DiamondCharm` and `OnLevelEnded` clears it. No other field remembers anything; no static field holds a game object; no working buffers.
+2. Work frequency: nothing needed. There is no Update loop; the only work is in the `Break` prefix, which exits early for non-masters, forced breaks, non-valuables, dead or ungrabbed objects before the carrier lookup.
+3. Allocations in hot paths: the two debug lines in the `Break` prefix are now guarded with `if (charm.DebugMode)` so their interpolated strings are not built when debugging is off. The carrier lookup allocates (a closure and CharmCore's own lists); it only runs for held valuables, and was left as is to keep behaviour identical. No `Find...` calls.
+4. UI: not applicable, the mod has no UI.
+5. Patches: ok. The prefix exits cheaply when inactive and keeps no state outside the charm.
+
+Unverified: not run in game.
