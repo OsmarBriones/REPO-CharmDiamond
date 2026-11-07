@@ -1,4 +1,5 @@
 using BepInEx;
+using HarmonyLib;
 using CharmCore.Api;
 using UnityEngine;
 
@@ -15,6 +16,9 @@ namespace CharmDiamond
 
 		internal static new BepInEx.Logging.ManualLogSource Logger { get; private set; } = null!;
 
+		/// <summary>The registered charm, for the Harmony patch.</summary>
+		internal static DiamondCharm? Charm { get; private set; }
+
 		private void Awake()
 		{
 			Logger = base.Logger;
@@ -24,9 +28,9 @@ namespace CharmDiamond
 			this.gameObject.hideFlags = HideFlags.HideAndDontSave;
 
 			// Registering binds Enabled, WearPercent, CooldownSeconds and the Debug section (DebugMode) in this mod's config file.
-			DiamondCharm charm = new DiamondCharm();
-			CharmsApi.Register(charm, Config);
-			this.gameObject.AddComponent<Unbreakable>().Charm = charm;
+			Charm = new DiamondCharm();
+			CharmsApi.Register(Charm, Config);
+			new Harmony(PluginGuid).PatchAll();
 
 			Logger.LogInfo($"{PluginName} {PluginVersion} loaded!");
 		}

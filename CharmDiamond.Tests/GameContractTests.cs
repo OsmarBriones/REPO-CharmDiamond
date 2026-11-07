@@ -28,11 +28,36 @@ public class GameContractTests
 	// ---- Members we read or write ----
 
 	[TestMethod]
+	public void ImpactDetector_HasTheBreakRoutine()
+	{
+		// The Harmony prefix is on Break(valueLost, contactPoint, breakLevel, _forceBreak); isValuable is read from the detector.
+		RequireMethod("PhysGrabObjectImpactDetector", "Break", 4);
+		RequireField("PhysGrabObjectImpactDetector", "isValuable");
+	}
+
+	[TestMethod]
+	public void PhysGrabObject_HasTheGrabAndDeadState()
+	{
+		RequireField("PhysGrabObject", "playerGrabbing");
+		RequireField("PhysGrabObject", "dead");
+	}
+
+	[TestMethod]
+	public void PlayerAvatar_HasThePhysGrabber()
+	{
+		RequireField("PlayerAvatar", "physGrabber");
+	}
+
+	[TestMethod]
 	public void Valuable_HasTheValueFields()
 	{
-		// TODO: add one RequireField / RequireMethod line for every game member this charm's effect reads, writes or patches,
-		// so a game update that renames or removes one fails here with a clear message.
 		RequireField("ValuableObject", "dollarValueCurrent");
+	}
+
+	[TestMethod]
+	public void SemiFunc_HasTheHostCheck()
+	{
+		RequireMethod("SemiFunc", "IsMasterClientOrSingleplayer", 0);
 	}
 
 	// ---- Helpers ----

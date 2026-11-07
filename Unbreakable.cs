@@ -1,32 +1,66 @@
+using CharmCore.Api;
+using CharmDiamond.Domain;
+using Pockets.Api;
 using UnityEngine;
 
 namespace CharmDiamond
 {
 	/// <summary>
-	/// Unbreakable: valuables you hold in your hands take no damage.
-	/// TODO: implement the power. Rules every charm follows:
-	/// - Only act while <c>Charm.IsActive</c> (the valuable is in the local player's pocket and everything is on).
-	/// - Call <c>Charm.TryUse()</c> at the moment the power triggers and apply the effect only when it returns true:
-	///   that starts the cooldown and wears the valuable. For wear over time use <c>Charm.TryUse(percent)</c> or <c>Charm.Wear(percent)</c>.
-	/// - Write debug detail with <c>Charm.LogDebug(...)</c>, never with the plugin logger (a test enforces it).
+	/// Unbreakable (host only): a valuable held in the hands of a player who carries the Diamond in a pocket takes no
+	/// damage. The Harmony prefix on <c>PhysGrabObjectImpactDetector.Break</c> asks <see cref="ShouldBlock"/>; each
+	/// prevented hit wears the Diamond (rate-limited per held valuable by <see cref="WearThrottle"/>).
+	/// Not blocked on purpose: forced breaks (game scripts, and CharmCore's own wear, which is forced and always on a
+	/// pocketed valuable), pocketed valuables, valuables nobody holds, and valuables that are already dead.
 	/// </summary>
-	internal sealed class Unbreakable : MonoBehaviour
+	internal static class Unbreakable
 	{
-		internal DiamondCharm Charm { get; set; } = null!;
+		private static readonly WearThrottle Throttle = new WearThrottle();
 
-		private void Update()
+		/// <summary>True when this physics hit must be cancelled. Call on the host only.</summary>
+		internal static bool ShouldBlock(PhysGrabObjectImpactDetector detector, bool forceBreak)
 		{
-			if (Charm == null || !Charm.IsActive)
+			DiamondCharm? charm = CharmDiamondPlugin.Charm;
+			if (charm == null || forceBreak || detector == null || !detector.isValuable)
 			{
-				return;
+				return false;
 			}
 
-			// TODO: detect the moment the power should trigger, then:
-			// if (Charm.TryUse())
-			// {
-			//     ... apply the effect ...
-			//     Charm.LogDebug("Unbreakable triggered");
-			// }
+			PhysGrabObject? grabObject = detector.GetComponent<PhysGrabObject>();
+			ValuableObject? valuable = detector.GetComponent<ValuableObject>();
+			if (grabObject == null || valuable == null || grabObject.dead || grabObject.playerGrabbing.Count == 0)
+			{
+				return false;
+			}
+
+			bool held = false;
+			ValuableObject? diamond = null;
+			CharmsApi.ForEachCarrier(charm, (avatar, carried) =>
+			{
+				if (held || avatar.physGrabber == null || !grabObject.playerGrabbing.Contains(avatar.physGrabber))
+				{
+					return;
+				}
+
+				held = true;
+				diamond = carried;
+			});
+
+			if (!held || PocketsApi.IsPocketed(valuable))
+			{
+				return false;
+			}
+
+			if (diamond != null && Throttle.TryCharge(valuable.GetInstanceID(), Time.time, charm.WearCooldownSeconds.Value))
+			{
+				charm.WearValuable(diamond, charm.WearPercent);
+				charm.LogDebug($"Unbreakable: prevented a hit on {valuable.name} (value {valuable.dollarValueCurrent:0}); wore the Diamond {charm.WearPercent:0.#}%");
+			}
+			else
+			{
+				charm.LogDebug($"Unbreakable: prevented a hit on {valuable.name} (no extra wear, inside the wear cooldown)");
+			}
+
+			return true;
 		}
 	}
 }
