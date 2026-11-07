@@ -32,7 +32,7 @@ Settings are in `com.osmar.CharmDiamond.cfg` inside `BepInEx/config`, section `C
 - `WearPercent` (default `8`): share of the Diamond's original value lost for each prevented hit.
 - `WearCooldownSeconds` (default `0.5`, 0 to 10): minimum time between wear charges for the same held valuable. Hits are still prevented inside that time, they just cost nothing extra. `0` charges every prevented hit.
 
-Section `Debug`: `DebugMode` (default `false`) places a Diamond on the floor in front of you when a level starts (host or singleplayer) and writes extra log lines. For testing.
+Section `Debug`: `DebugMode` (default `false`) places a Diamond on the floor in front of you when a level starts (host or singleplayer) and writes extra log lines. For testing. `SpawnNow` (default `false`, needs `DebugMode`): set it to `true` while a level is running to place one right away; it switches itself back off.
 
 ## Issues & Bug Reports
 The official way to report issues, suggest improvements, or submit feedback is by opening an issue on the official GitHub repository:
